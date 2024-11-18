@@ -1,23 +1,22 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('verify')
-        .setDescription('Verify yourself and set your subjects'),
+        .setDescription('Verify yourself to gain access to the server'),
     async execute(interaction) {
         try {
             const guild = interaction.guild;
             const user = interaction.user;
-            const everyoneRole = guild.roles.everyone;
 
-            await interaction.reply({ content: 'Starting verification process...', ephemeral: true });
+            await interaction.reply({ content: `Please go to your designated channel to proceed with verification.`, ephemeral: true });
 
             const tempChannel = await guild.channels.create({
-                name: `verify-${user.username}`,
+                name: user.username.toLowerCase(),
                 type: ChannelType.GuildText,
                 permissionOverwrites: [
                     {
-                        id: everyoneRole.id,
+                        id: guild.roles.everyone,
                         deny: [PermissionFlagsBits.ViewChannel],
                     },
                     {
@@ -27,10 +26,7 @@ module.exports = {
                 ],
             });
 
-            await interaction.followUp({ content: 'Please check the temporary channel created for you and follow the instructions there.', ephemeral: true });
-
-            await tempChannel.send(`${user}, welcome to the verification process! Please follow the instructions below:`);
-            await tempChannel.send('1. Type your name so we can set it as your nickname.');
+            await tempChannel.send(`<@${user.id}>, please provide your name.`);
 
             const nameMessage = await tempChannel.awaitMessages({
                 filter: response => response.author.id === user.id,
@@ -39,53 +35,74 @@ module.exports = {
                 errors: ['time']
             });
 
-            const nickname = nameMessage.first()?.content;
-            try {
-                await interaction.member.setNickname(nickname);
-                await tempChannel.send(`Your nickname has been set to "${nickname}".`);
-            } catch (error) {
-                console.error('Error setting nickname:', error);
-                if (error.code === 50013) {
-                    await tempChannel.send('I do not have the necessary permissions to change your nickname. Please contact an administrator.');
-                } else {
-                    throw error;
+            const userName = nameMessage.first()?.content;
+
+            await interaction.member.setNickname(userName);
+
+            const allRoles = guild.roles.cache.filter(role => role.name !== '@everyone' && !role.managed && !role.permissions.has(PermissionFlagsBits.Administrator));
+
+            const rows = [];
+            let currentRow = new ActionRowBuilder();
+            allRoles.forEach(role => {
+                if (currentRow.components.length >= 5) {
+                    rows.push(currentRow);
+                    currentRow = new ActionRowBuilder();
                 }
+                currentRow.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(role.id)
+                        .setLabel(role.name)
+                        .setStyle(ButtonStyle.Primary)
+                );
+            });
+            if (currentRow.components.length > 0) {
+                rows.push(currentRow);
             }
 
-            const roles = guild.roles.cache.filter(role => role.name !== everyoneRole.name && role.name !== 'Admin');
-            const subjects = [];
+            const completeRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('complete')
+                    .setLabel('Press this button to complete verification')
+                    .setStyle(ButtonStyle.Success)
+            );
+            rows.push(completeRow);
 
-            await tempChannel.send('2. Please type the subjects you are interested in, one by one. Type "done" when finished.');
+            await tempChannel.send({ content: 'Please choose your subject roles:', components: rows });
+ 
+            const filter = i => i.user.id === user.id;
+            const collector = tempChannel.createMessageComponentCollector({ filter, time: 60000 });
 
-            const collector = tempChannel.createMessageCollector({
-                filter: response => response.author.id === user.id,
-                time: 300000,
-            });
-
-            collector.on('collect', async message => {
-                if (message.content.toLowerCase() === 'done') {
+            const chosenRoles = new Set();
+            collector.on('collect', async i => {
+                if (i.customId === 'complete') {
                     collector.stop();
-                } else {
-                    const role = roles.find(r => r.name.toLowerCase() === message.content.toLowerCase());
-                    if (role) {
-                        subjects.push(role);
-                        await interaction.member.roles.add(role);
-                        await tempChannel.send(`You have been added to the "${role.name}" role.`);
-                    } else {
-                        await tempChannel.send(`The subject "${message.content}" does not exist. Please try again.`);
-                    }
+                    return;
+                }
+
+                const roleId = i.customId;
+                const role = guild.roles.cache.get(roleId);
+                if (!chosenRoles.has(roleId)) {
+                    await interaction.member.roles.add(role);
+                    chosenRoles.add(roleId);
+                    await i.reply({ content: `You have chosen the role: ${role.name}`, ephemeral: true });
                 }
             });
 
             collector.on('end', async collected => {
-                await tempChannel.send('Verification process completed!');
+                const initializationChannel = guild.channels.cache.find(channel => channel.name === 'initialization');
+                if (initializationChannel) {
+                    await initializationChannel.permissionOverwrites.edit(user.id, {
+                        [PermissionFlagsBits.ViewChannel]: false,
+                    });
+                }
+
                 await tempChannel.delete();
-                await interaction.followUp({ content: 'Your verification is complete! You can now access the channels for your subjects.', ephemeral: true });
+                await interaction.followUp({ content: 'Verification complete! You can now access the server.', ephemeral: true });
             });
 
         } catch (error) {
             console.error('Error during verification:', error);
-            interaction.followUp({ content: 'There was an error during verification. Please check the logs.', ephemeral: true });
+            await interaction.followUp({ content: 'There was an error during verification. Please try again.', ephemeral: true });
         }
     },
 };
