@@ -33,7 +33,7 @@ module.exports = {
 
             const db = new sqlite3.Database(dbPath);
 
-            db.all('SELECT date, nickname, status, timestamp FROM attendance ORDER BY timestamp ASC', [], async (err, rows) => {
+            db.all('SELECT date, name, status, timestamp FROM attendance ORDER BY timestamp ASC', [], async (err, rows) => {
                 if (err) {
                     logger.error(`Error retrieving data from database: ${err.stack || err.message}`);
                     await interaction.reply({ content: 'There was an error retrieving attendance records.', ephemeral: true });
@@ -59,7 +59,7 @@ module.exports = {
                     const records = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
                     records.forEach(record => {
                         embed.addFields({
-                            name: `${record.nickname}`,
+                            name: `${record.name}`,
                             value: `**Date**: ${record.date}\n**Status**: ${record.status}\n**Timestamp**: ${record.timestamp}`
                         });
                     });

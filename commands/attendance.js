@@ -46,7 +46,7 @@ module.exports = {
                     CREATE TABLE IF NOT EXISTS attendance(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT,
-        nickname TEXT,
+        name TEXT,
         status TEXT,
         timestamp TEXT,
         server_name TEXT
@@ -193,7 +193,7 @@ const pingNextUser = async () => {
 
         const timestamp = new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" });
 
-        db.run('INSERT INTO attendance (date, nickname, status, timestamp, server_name) VALUES (?, ?, ?, ?, ?)', [
+        db.run('INSERT INTO attendance (date, name, status, timestamp, server_name) VALUES (?, ?, ?, ?, ?)', [
             attendanceStartDate,
             member.displayName,
             'Present',
@@ -222,7 +222,7 @@ const pingNextUser = async () => {
         if (collected.size === 0) {
             const timestamp = new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" });
 
-            db.run('INSERT INTO attendance (date, nickname, status, timestamp, server_name) VALUES (?, ?, ?, ?, ?)', [
+            db.run('INSERT INTO attendance (date, name, status, timestamp, server_name) VALUES (?, ?, ?, ?, ?)', [
                 attendanceStartDate,
                 member.displayName,
                 'Absent',

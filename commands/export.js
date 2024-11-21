@@ -49,7 +49,7 @@ module.exports = {
             pdfDoc.fontSize(14).text(`Subject: ${role.name}`, { align: 'center' });
             pdfDoc.moveDown(1);
 
-            db.all('SELECT nickname, status, timestamp, server_name FROM attendance WHERE date = ?', [date], (err, rows) => {
+            db.all('SELECT name, status, timestamp, server_name FROM attendance WHERE date = ?', [date], (err, rows) => {
                 if (err) {
                     logger.error(`Database error: ${err.message}`);
                     interaction.reply({ content: 'An error occurred while exporting the data.', ephemeral: true });
@@ -62,14 +62,14 @@ module.exports = {
                 }
 
                 pdfDoc.moveDown(0.5);
-                pdfDoc.fontSize(12).text('Nickname', { continued: true });
+                pdfDoc.fontSize(12).text('Name', { continued: true });
                 pdfDoc.text('Status', { align: 'center', continued: true });
                 pdfDoc.text('Timestamp', { align: 'right' });
                 pdfDoc.moveDown(0.5);
                 pdfDoc.text('---------------------------------------------------------------------------------------------------------------------');
 
                 rows.forEach((row) => {
-                    pdfDoc.text(row.nickname, { continued: true });
+                    pdfDoc.text(row.name, { continued: true });
                     pdfDoc.text(row.status, { align: 'center', continued: true });
                     pdfDoc.text(row.timestamp, { align: 'right' });
                 });
