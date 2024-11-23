@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -9,7 +9,12 @@ module.exports = {
             const guild = interaction.guild;
             const user = interaction.user;
 
-            await interaction.reply({ content: `Please go to your designated channel to proceed with verification.`, ephemeral: true });
+            const embed = new EmbedBuilder()
+                .setTitle('Verification Process')
+                .setDescription('Please go to your designated channel to proceed with verification.')
+                .setColor('#0099ff');
+
+            await interaction.reply({ embeds: [embed], ephemeral: true });
 
             const tempChannel = await guild.channels.create({
                 name: user.username.toLowerCase(),
@@ -26,7 +31,12 @@ module.exports = {
                 ],
             });
 
-            await tempChannel.send(`<@${user.id}>, please provide your name.`);
+            const nameEmbed = new EmbedBuilder()
+                .setTitle('Verification Step 1')
+                .setDescription(`<@${user.id}>, please provide your name.`)
+                .setColor('#0099ff');
+
+            await tempChannel.send({ embeds: [nameEmbed] });
 
             const nameMessage = await tempChannel.awaitMessages({
                 filter: response => response.author.id === user.id,
@@ -36,8 +46,6 @@ module.exports = {
             });
 
             const userName = nameMessage.first()?.content;
-
-            await interaction.member.setNickname(userName);
 
             const allRoles = guild.roles.cache.filter(role => role.name !== '@everyone' && !role.managed && !role.permissions.has(PermissionFlagsBits.Administrator));
 
@@ -67,8 +75,13 @@ module.exports = {
             );
             rows.push(completeRow);
 
-            await tempChannel.send({ content: 'Please choose your subject roles:', components: rows });
- 
+            const roleEmbed = new EmbedBuilder()
+                .setTitle('Verification Step 2')
+                .setDescription('Please choose your subject roles:')
+                .setColor('#0099ff');
+
+            await tempChannel.send({ embeds: [roleEmbed], components: rows });
+
             const filter = i => i.user.id === user.id;
             const collector = tempChannel.createMessageComponentCollector({ filter, time: 60000 });
 
@@ -82,22 +95,59 @@ module.exports = {
                 const roleId = i.customId;
                 const role = guild.roles.cache.get(roleId);
                 if (!chosenRoles.has(roleId)) {
-                    await interaction.member.roles.add(role);
                     chosenRoles.add(roleId);
                     await i.reply({ content: `You have chosen the role: ${role.name}`, ephemeral: true });
                 }
             });
 
             collector.on('end', async collected => {
-                const initializationChannel = guild.channels.cache.find(channel => channel.name === 'initialization');
-                if (initializationChannel) {
-                    await initializationChannel.permissionOverwrites.edit(user.id, {
-                        [PermissionFlagsBits.ViewChannel]: false,
-                    });
-                }
+                const chosenRoleNames = Array.from(chosenRoles).map(roleId => guild.roles.cache.get(roleId).name).join(', ');
 
-                await tempChannel.delete();
-                await interaction.followUp({ content: 'Verification complete! You can now access the server.', ephemeral: true });
+                const confirmationEmbed = new EmbedBuilder()
+                    .setTitle('Confirmation')
+                    .setDescription(`Please confirm your details:\n**Name:** ${userName}\n**Subjects:** ${chosenRoleNames}`)
+                    .setColor('#0099ff');
+
+                const confirmRow = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('confirm')
+                        .setLabel('Confirm')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId('startover')
+                        .setLabel('Start Over')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+                await tempChannel.send({ embeds: [confirmationEmbed], components: [confirmRow] });
+
+                const confirmCollector = tempChannel.createMessageComponentCollector({ filter, time: 60000 });
+
+                confirmCollector.on('collect', async i => {
+                    if (i.customId === 'confirm') {
+                        await interaction.member.setNickname(userName);
+                        for (const roleId of chosenRoles) {
+                            const role = guild.roles.cache.get(roleId);
+                            await interaction.member.roles.add(role);
+                        }
+                        const initializationChannel = guild.channels.cache.find(channel => channel.name === 'initialization');
+                        if (initializationChannel) {
+                            await initializationChannel.permissionOverwrites.edit(user.id, {
+                                [PermissionFlagsBits.ViewChannel]: false,
+                            });
+                        }
+                        await tempChannel.delete();
+                        await interaction.followUp({ content: 'Verification complete! You can now access the server.', ephemeral: true });
+                    } else if (i.customId === 'startover') {
+                        await tempChannel.delete();
+                        await interaction.followUp({ content: 'Verification process restarted. Please run the command again.', ephemeral: true });
+                    }
+                });
+
+                confirmCollector.on('end', async () => {
+                    await tempChannel.delete();
+                    await interaction.followUp({ content: 'Verification process timed out. Please run the command again.', ephemeral: true });
+                });
             });
 
         } catch (error) {
