@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
@@ -15,6 +15,11 @@ module.exports = {
         ),
     async execute(interaction) {
         try {
+            if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+                await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+                return;
+            }
+
             const role = interaction.options.getRole('role');
 
             if (!role) {
@@ -24,7 +29,7 @@ module.exports = {
 
             const dbFolderPath = path.join(__dirname, '../databases');
             const sanitizedRoleName = role.name.replace(/[<>:"/\\|?*]/g, '_');
-            const dbPath = path.join(dbFolderPath, `${sanitizedRoleName}.db`);
+            const dbPath = path.join(dbFolderPath, `${sanitizedRoleName}-${role.id}.db`);
 
             if (!fs.existsSync(dbPath)) {
                 await interaction.reply({ content: `No attendance records found for the subject: ${role.name}`, ephemeral: true });
@@ -33,7 +38,7 @@ module.exports = {
 
             const db = new sqlite3.Database(dbPath);
 
-            db.all('SELECT date, name, status, timestamp FROM attendance ORDER BY timestamp ASC', [], async (err, rows) => {
+            db.all('SELECT DISTINCT date FROM attendance', async (err, rows) => {
                 if (err) {
                     logger.error(`Error retrieving data from database: ${err.stack || err.message}`);
                     await interaction.reply({ content: 'There was an error retrieving attendance records.', ephemeral: true });
@@ -45,59 +50,121 @@ module.exports = {
                     return;
                 }
 
-                const pageSize = 10;
-                let page = 0;
-                const totalPages = Math.ceil(rows.length / pageSize);
+                const dateButtons = rows.map(row =>
+                    new ButtonBuilder()
+                        .setCustomId(`records_${row.date}`)
+                        .setLabel(row.date)
+                        .setStyle(ButtonStyle.Primary)
+                );
 
-                const generateEmbed = (currentPage) => {
-                    const embed = new EmbedBuilder()
-                        .setColor('#0099ff')
-                        .setTitle(`Attendance Records for ${role.name}`)
-                        .setFooter({ text: `Page ${currentPage + 1} of ${totalPages}` })
-                        .setTimestamp();
-
-                    const records = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-                    records.forEach(record => {
-                        embed.addFields({
-                            name: `${record.name}`,
-                            value: `**Date**: ${record.date}\n**Status**: ${record.status}\n**Timestamp**: ${record.timestamp}`
-                        });
-                    });
-
-                    return embed;
-                };
-
-                const embedMessage = await interaction.reply({
-                    embeds: [generateEmbed(page)],
-                    fetchReply: true,
-                });
-
-                if (totalPages > 1) {
-                    await embedMessage.react('⬅️');
-                    await embedMessage.react('➡️');
-
-                    const filter = (reaction, user) => {
-                        return ['⬅️', '➡️'].includes(reaction.emoji.name) && user.id === interaction.user.id;
-                    };
-
-                    const collector = embedMessage.createReactionCollector({ filter, time: 60000 });
-
-                    collector.on('collect', (reaction) => {
-                        if (reaction.emoji.name === '➡️') {
-                            if (page < totalPages - 1) page++;
-                        } else if (reaction.emoji.name === '⬅️') {
-                            if (page > 0) page--;
-                        }
-                        embedMessage.edit({ embeds: [generateEmbed(page)] });
-                    });
-
-                    collector.on('end', () => {
-                        embedMessage.reactions.removeAll();
-                    });
+                const rowComponents = [];
+                for (let i = 0; i < dateButtons.length; i += 5) {
+                    rowComponents.push(new ActionRowBuilder().addComponents(dateButtons.slice(i, i + 5)));
                 }
 
-                db.close();
+                let dateEmbed = new EmbedBuilder()
+                    .setColor('#0099ff')
+                    .setTitle(`Select a Date to View Attendance for Role: ${role.name}`)
+                    .setDescription('Choose a date from the buttons below:')
+                    .setFooter({ text: 'You have 60 seconds to interact.' })
+                    .setTimestamp();
+
+                await interaction.deferReply({ ephemeral: true });
+                const message = await interaction.editReply({ embeds: [dateEmbed], components: rowComponents, fetchReply: true });
+
+                const filter = i => i.customId.startsWith('records_') && i.user.id === interaction.user.id;
+                const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
+
+                const interval = setInterval(() => {
+                    const remainingTime = Math.ceil((60000 - (Date.now() - message.createdTimestamp)) / 1000);
+                    if (remainingTime > 0) {
+                        dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.` });
+                        interaction.editReply({ embeds: [dateEmbed] });
+                    }
+                }, 1000);
+
+                collector.on('collect', async i => {
+                    clearInterval(interval);
+                    const date = i.customId.split('_')[1];
+                    await i.deferUpdate();
+
+                    await i.editReply({ components: [] });
+
+                    db.all('SELECT name, status, timestamp FROM attendance WHERE date = ? ORDER BY timestamp ASC', [date], async (err, rows) => {
+                        if (err) {
+                            logger.error(`Error retrieving data from database: ${err.stack || err.message}`);
+                            await i.followUp({ content: 'There was an error retrieving attendance records.', ephemeral: true });
+                            return;
+                        }
+
+                        if (rows.length === 0) {
+                            await i.followUp({ content: `No records found for the date: ${date}`, ephemeral: true });
+                            return;
+                        }
+
+                        const pageSize = 10;
+                        let page = 0;
+                        const totalPages = Math.ceil(rows.length / pageSize);
+
+                        const generateEmbed = (currentPage) => {
+                            const embed = new EmbedBuilder()
+                                .setColor('#0099ff')
+                                .setTitle(`Attendance Records for ${role.name} on ${date}`)
+                                .setFooter({ text: `Page ${currentPage + 1} of ${totalPages}` })
+                                .setTimestamp();
+
+                            const records = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+                            records.forEach(record => {
+                                const statusField = `**Status**: ${record.status}`;
+                                const timestampField = record.status === 'Absent' ? '' : `\n**Timestamp**: ${record.timestamp}`;
+                                embed.addFields({
+                                    name: `${record.name}`,
+                                    value: statusField + timestampField
+                                });
+                            });
+
+                            return embed;
+                        };
+
+                        const embedMessage = await i.followUp({
+                            embeds: [generateEmbed(page)],
+                            fetchReply: true,
+                        });
+
+                        if (totalPages > 1) {
+                            await embedMessage.react('⬅️');
+                            await embedMessage.react('➡️');
+
+                            const filter = (reaction, user) => {
+                                return ['⬅️', '➡️'].includes(reaction.emoji.name) && user.id === interaction.user.id;
+                            };
+
+                            const collector = embedMessage.createReactionCollector({ filter, time: 60000 });
+
+                            collector.on('collect', (reaction) => {
+                                if (reaction.emoji.name === '➡️') {
+                                    if (page < totalPages - 1) page++;
+                                } else if (reaction.emoji.name === '⬅️') {
+                                    if (page > 0) page--;
+                                }
+                                embedMessage.edit({ embeds: [generateEmbed(page)] });
+                            });
+
+                            collector.on('end', () => {
+                                embedMessage.reactions.removeAll();
+                            });
+                        }
+                    });
+                });
+
+                collector.on('end', collected => {
+                    clearInterval(interval);
+                    if (collected.size === 0) {
+                        interaction.followUp({ content: 'No date selected. Records retrieval cancelled.', ephemeral: true });
+                    }
+                });
             });
+
         } catch (error) {
             logger.error(`Error in records command: ${error.stack || error.message}`);
             await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });

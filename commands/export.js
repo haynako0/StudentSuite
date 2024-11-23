@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
@@ -16,10 +16,15 @@ module.exports = {
         ),
     async execute(interaction) {
         try {
+            if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+                await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+                return;
+            }
+
             const role = interaction.options.getRole('role');
             const dbFolderPath = path.join(__dirname, '../databases');
             const sanitizedRoleName = role.name.replace(/[<>:"/\\|?*]/g, '_');
-            const dbPath = path.join(dbFolderPath, `${sanitizedRoleName}.db`);
+            const dbPath = path.join(dbFolderPath, `${sanitizedRoleName}-${role.id}.db`);
 
             if (!fs.existsSync(dbPath)) {
                 await interaction.reply({ content: `No database found for the role: ${role.name}`, ephemeral: true });
@@ -52,20 +57,33 @@ module.exports = {
                     rowComponents.push(new ActionRowBuilder().addComponents(dateButtons.slice(i, i + 5)));
                 }
 
-                const dateEmbed = new EmbedBuilder()
+                let dateEmbed = new EmbedBuilder()
                     .setColor('#0099ff')
                     .setTitle(`Select a Date to Export Attendance for Role: ${role.name}`)
                     .setDescription('Choose a date from the buttons below:')
+                    .setFooter({ text: 'You have 60 seconds to interact.' })
                     .setTimestamp();
 
-                await interaction.reply({ embeds: [dateEmbed], components: rowComponents, ephemeral: true });
+                await interaction.deferReply({ ephemeral: true });
+                const message = await interaction.editReply({ embeds: [dateEmbed], components: rowComponents, fetchReply: true });
 
                 const filter = i => i.customId.startsWith('export_') && i.user.id === interaction.user.id;
                 const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
 
+                const interval = setInterval(() => {
+                    const remainingTime = Math.ceil((60000 - (Date.now() - message.createdTimestamp)) / 1000);
+                    if (remainingTime > 0) {
+                        dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.` });
+                        interaction.editReply({ embeds: [dateEmbed] });
+                    }
+                }, 1000);
+
                 collector.on('collect', async i => {
+                    clearInterval(interval);
                     const date = i.customId.split('_')[1];
                     await i.deferUpdate();
+
+                    await i.editReply({ components: [] });
 
                     const pdfFolderPath = path.join(__dirname, '../exports');
 
@@ -114,7 +132,7 @@ module.exports = {
                             rows: rows.map(row => [
                                 row.name,
                                 row.status,
-                                row.timestamp,
+                                row.status === 'Absent' ? 'N/A' : row.timestamp,
                             ]),
                         };
 
@@ -138,6 +156,7 @@ module.exports = {
                 });
 
                 collector.on('end', collected => {
+                    clearInterval(interval);
                     if (collected.size === 0) {
                         interaction.followUp({ content: 'No date selected. Export cancelled.', ephemeral: true });
                     }
