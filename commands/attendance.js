@@ -62,20 +62,25 @@ module.exports = {
             });
 
             const commandEmbed = new EmbedBuilder()
-                .setColor('#0099ff')
-                .setTitle('Command Executed')
-                .setDescription(`${interaction.user} has used \`${interaction.commandName}\` command.`)
+                .setColor(5798747)
+                .setTitle('✅ Command Successfully Executed')
+                .setDescription(`# The attendance command has been executed successfully.`)
+                .setThumbnail('https://i.imgur.com/EISYZLs.png')
+                .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                 .setTimestamp();
 
             await interaction.reply({ embeds: [commandEmbed], ephemeral: false });
 
             const attendanceStartEmbed = new EmbedBuilder()
-                .setColor('#0099ff')
+                .setColor(11944518)
                 .setTitle('Attendance Starting Soon')
-                .setDescription(`# Hello <@&${role.id}> students! Attendance will be starting soon!`)
+                .setDescription('Good day Students!!! Attendance will begin shortly. Please be ready to check in!')
+                .setImage('https://i.imgur.com/fLYgGPq.png')
+                .setThumbnail('https://i.imgur.com/EISYZLs.png')
+                .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                 .setTimestamp();
 
-            await channel.send({ embeds: [attendanceStartEmbed] });
+            await channel.send({ content: `<@&${role.id}>`, embeds: [attendanceStartEmbed] });
 
             await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -88,9 +93,10 @@ module.exports = {
                 if (index >= memberArray.length) {
                     if (!attendanceCompleted) {
                         const attendanceCompleteEmbed = new EmbedBuilder()
-                            .setColor('#0099ff')
-                            .setTitle('Attendance Completed')
+                            .setColor(2619932)
+                            .setTitle('Attendance Done!')
                             .setDescription('Attendance is now complete!')
+                            .setThumbnail('https://cdn-icons-png.flaticon.com/512/5290/5290058.png')
                             .setTimestamp();
 
                         await channel.send({ embeds: [attendanceCompleteEmbed] });
@@ -115,12 +121,13 @@ module.exports = {
                 let publicMessage;
                 try {
                     const attendancePromptEmbed = new EmbedBuilder()
-                        .setColor('#0099ff')
-                        .setTitle('Attendance Prompt')
-                        .setDescription(`## ${member}, please press the button to take your attendance. You have 10 seconds.`)
+                        .setColor(15466496)
+                        .setTitle('Checking Attendance')
+                        .setDescription(`# ${member}, please press the button to take your attendance. You have 10 seconds.`)
+                        .setThumbnail('https://cdn-icons-png.flaticon.com/512/3338/3338489.png')
                         .setTimestamp();
 
-                    publicMessage = await channel.send({ embeds: [attendancePromptEmbed] });
+                    publicMessage = await channel.send({ content: `${member}`, embeds: [attendancePromptEmbed] });
                 } catch (error) {
                     logger.error(`Error sending public message: ${error.stack || error.message}`);
                     isProcessing = false;
@@ -161,9 +168,10 @@ module.exports = {
                     try {
                         if (timeRemaining > 0) {
                             const countdownEmbed = new EmbedBuilder()
-                                .setColor('#0099ff')
-                                .setTitle('Attendance Countdown')
-                                .setDescription(`## ${member}, please press the button to take your attendance. You have ${timeRemaining} seconds.`)
+                                .setColor(15466496)
+                                .setTitle('Checking Attendance')
+                                .setDescription(`# ${member}, please press the button to take your attendance. You have ${timeRemaining} seconds.`)
+                                .setThumbnail('https://cdn-icons-png.flaticon.com/512/3338/3338489.png')
                                 .setTimestamp();
 
                             await publicMessage.edit({ embeds: [countdownEmbed] });
@@ -204,9 +212,10 @@ module.exports = {
                     await buttonMessage.delete();
 
                     const presentEmbed = new EmbedBuilder()
-                        .setColor('#0099ff')
+                        .setColor(2619932)
                         .setTitle('Attendance Marked')
                         .setDescription(`${member.displayName} is present.`)
+                        .setThumbnail('https://cdn-icons-png.flaticon.com/256/8768/8768984.png')
                         .setTimestamp();
 
                     await publicMessage.edit({ embeds: [presentEmbed] });
@@ -231,9 +240,10 @@ module.exports = {
                         await buttonMessage.delete();
 
                         const absentEmbed = new EmbedBuilder()
-                            .setColor('#0099ff')
+                            .setColor(15796746)
                             .setTitle('Attendance Marked')
                             .setDescription(`${member.displayName} is absent.`)
+                            .setThumbnail('https://cdn-icons-png.flaticon.com/512/8769/8769084.png')
                             .setTimestamp();
 
                         await publicMessage.edit({ embeds: [absentEmbed] });

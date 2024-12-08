@@ -18,8 +18,7 @@ module.exports = {
             }
 
             const warningEmbed = new EmbedBuilder()
-                .setTitle('Warning')
-                .setDescription('This command is only meant to be run once on freshly made servers with no modifications. Running this command on an existing server will delete all channels and roles. Do you want to continue?')
+                .setImage('https://cdn.discordapp.com/attachments/1307939013344235530/1311869609338732585/server_setup.png?ex=67564ac8&is=6754f948&hm=3e59a31351244f64a0029c869e33645ecf594661ae03b6aa49e719bbbdeaf1a9&')
                 .setColor('#ff0000');
 
             const confirmRow = new ActionRowBuilder().addComponents(
@@ -45,8 +44,9 @@ module.exports = {
                 if (i.customId === 'confirm') {
                     const embed = new EmbedBuilder()
                         .setTitle('Server Setup')
-                        .setDescription('Starting server setup...')
-                        .setColor('#0099ff');
+                        .setDescription('Starting server setup, please wait a moment...')
+                        .setColor('#dedc15')
+                        .setThumbnail('https://cdn-icons-png.flaticon.com/512/4990/4990502.png');
 
                     const setupMessage = await interaction.followUp({ embeds: [embed], fetchReply: true });
 
@@ -62,10 +62,26 @@ module.exports = {
                         });
                     });
 
+                    const allRoles = guild.roles.cache;
+                    const botRoleId = guild.members.me.roles.highest.id;
+
+                    console.log('Deleting old roles...');
+                    allRoles.forEach(async role => {
+                        if (role.id !== everyoneRole.id && role.id !== botRoleId) {
+                            try {
+                                await role.delete();
+                                console.log(`Deleted role: ${role.name}`);
+                            } catch (error) {
+                                console.error(`Failed to delete role: ${role.name}`, error);
+                            }
+                        }
+                    });
+
                     const adminRoleEmbed = new EmbedBuilder()
-                        .setTitle('Admin Role Name')
+                        .setTitle('Admin Setup')
                         .setDescription('Please provide a name for the admin role or type "default" for the default admin role name: "Admin".')
-                        .setColor('#0099ff');
+                        .setColor('#dedc15')
+                        .setThumbnail('https://cdn-icons-png.flaticon.com/128/17434790.png');
 
                     const adminMessage = await interaction.followUp({ embeds: [adminRoleEmbed], fetchReply: true });
 
@@ -88,9 +104,10 @@ module.exports = {
                         };
 
                         const subjectsEmbed = new EmbedBuilder()
-                            .setTitle('Subjects List')
-                            .setDescription('Please provide a comma-separated list of subjects to create roles and channels (e.g., "Math, Science, English").')
-                            .setColor('#0099ff');
+                            .setTitle('Subject List Setup')
+                            .setDescription('Please provide a comma-separated list of subjects to create roles and channels (e.g., "Math, English, Science").')
+                            .setColor('#dedc15')
+                            .setThumbnail('https://cdn-icons-png.flaticon.com/512/5832/5832416.png');
 
                         const subjectsMessage = await interaction.followUp({ embeds: [subjectsEmbed], fetchReply: true });
 
@@ -118,7 +135,8 @@ module.exports = {
                             const confirmationEmbed = new EmbedBuilder()
                                 .setTitle('Confirmation')
                                 .setDescription(`Please confirm your details:\n**Admin Role Name:** ${adminName}\n**Subjects:** ${subjects.join(', ')}`)
-                                .setColor('#0099ff');
+                                .setColor('#1cff00')
+                                .setThumbnail('https://www.iconpacks.net/icons/2/free-check-icon-3278-thumb.png');
 
                             const confirmRow2 = new ActionRowBuilder().addComponents(
                                 new ButtonBuilder()
@@ -216,7 +234,22 @@ module.exports = {
                                         ],
                                     });
 
-                                    await initializationChannel.send('Hello! Welcome to ' + guild.name + '! To get started, verify yourself by using the /verify command.');
+                                    const initializationEmbed = new EmbedBuilder()
+                                        .setDescription("# 🎉 Welcome to the Server!!!\n*Hello! We're glad to have you here. To get started, please verify yourself by using the `/verify` command.*\n### Once verified, you'll gain access to all available channels. Enjoy your stay!")
+                                        .setTimestamp(new Date('2024-11-28T16:00:00+00:00'))
+                                        .setColor(5798747)
+                                        .setFooter({
+                                            text: "Powered by StudentSuite",
+                                            iconURL: "https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg"
+                                        })
+                                        .setThumbnail('https://i.imgur.com/FeekXot.png');
+
+                                    await initializationChannel.send({
+                                        embeds: [initializationEmbed],
+                                        username: "initialization-process design #3",
+                                        avatarURL: "https://cdn.discordapp.com/embed/avatars/0.png"
+                                    });
+
                                     await initializationChannel.setPosition(0);
 
                                     const exportsChannel = await guild.channels.create({
@@ -258,13 +291,13 @@ module.exports = {
                                     setTimeout(async () => {
                                         const commandChannel = interaction.channel;
                                         const allChannels = guild.channels.cache;
-                                        const allRoles = guild.roles.cache;
-                                        const botRoleId = guild.members.me.roles.highest.id;
 
+                                        console.log('Deleting old channels...');
                                         allChannels.forEach(async channel => {
                                             if (channel.type === ChannelType.GuildCategory && !createdCategories.includes(channel.id)) {
                                                 try {
                                                     await channel.delete();
+                                                    console.log(`Deleted category: ${channel.name}`);
                                                 } catch (error) {
                                                     console.error(`Failed to delete category: ${channel.name}`, error);
                                                 }
@@ -272,6 +305,7 @@ module.exports = {
                                                 try {
                                                     if (channel.deletable) {
                                                         await channel.delete();
+                                                        console.log(`Deleted channel: ${channel.name}`);
                                                     }
                                                 } catch (error) {
                                                     console.error(`Failed to delete channel: ${channel.name}`, error);
@@ -279,19 +313,10 @@ module.exports = {
                                             }
                                         });
 
-                                        allRoles.forEach(async role => {
-                                            if (!createdRoles.includes(role.id) && role.id !== everyoneRole.id && role.id !== botRoleId) {
-                                                try {
-                                                    await role.delete();
-                                                } catch (error) {
-                                                    console.error(`Failed to delete role: ${role.name}`, error);
-                                                }
-                                            }
-                                        });
-
                                         try {
                                             if (commandChannel.deletable) {
                                                 await commandChannel.delete();
+                                                console.log(`Deleted command ran channel: ${commandChannel.name}`);
                                             }
                                         } catch (error) {
                                             console.error(`Failed to delete command ran channel: ${commandChannel.name}`, error);

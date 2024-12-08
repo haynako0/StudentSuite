@@ -63,10 +63,10 @@ module.exports = {
                 }
 
                 let dateEmbed = new EmbedBuilder()
-                    .setColor('#0099ff')
-                    .setTitle(`Select a Date to View Attendance for Role: ${role.name}`)
-                    .setDescription('Choose a date from the buttons below:')
-                    .setFooter({ text: 'You have 60 seconds to interact.' })
+                    .setColor(5798747)
+                    .setDescription(`# 📅 Select a Date to View Attendance for the Role:\n### Choose a date from the buttons below:`)
+                    .setThumbnail('https://i.imgur.com/FeekXot.png')
+                    .setFooter({ text: 'You have 60 seconds to interact.', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                     .setTimestamp();
 
                 await interaction.deferReply({ ephemeral: true });
@@ -78,7 +78,7 @@ module.exports = {
                 const interval = setInterval(() => {
                     const remainingTime = Math.ceil((60000 - (Date.now() - message.createdTimestamp)) / 1000);
                     if (remainingTime > 0) {
-                        dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.` });
+                        dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.`, iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' });
                         interaction.editReply({ embeds: [dateEmbed] });
                     }
                 }, 1000);
@@ -108,9 +108,11 @@ module.exports = {
 
                         const generateEmbed = (currentPage) => {
                             const embed = new EmbedBuilder()
-                                .setColor('#0099ff')
-                                .setTitle(`Attendance Records for ${role.name} on ${date}`)
-                                .setFooter({ text: `Page ${currentPage + 1} of ${totalPages}` })
+                                .setColor(5798747)
+                                .setDescription(`# 📋 Attendance Records for ${role.name} on ${date}`)
+                                .setImage('https://i.imgur.com/fZoI8Fi.png')
+                                .setThumbnail('https://i.imgur.com/FeekXot.png')
+                                .setFooter({ text: `Page ${currentPage + 1} of ${totalPages}`, iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                                 .setTimestamp();
 
                             const records = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);

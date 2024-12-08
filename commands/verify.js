@@ -10,9 +10,14 @@ module.exports = {
             const user = interaction.user;
 
             const embed = new EmbedBuilder()
-                .setTitle('Verification Process')
-                .setDescription('Please go to your designated channel to proceed with verification.')
-                .setColor('#0099ff');
+                .setDescription("# Verification Process\n### *Step 1:*\n\n*Please navigate to your designated channel, which will appear on the left side of your screen, to complete the verification process.*\n\n***Feel free to contact the administrator for assistance if you encounter any issues.***")
+                .setTimestamp(new Date('2024-11-28T16:00:00+00:00'))
+                .setColor(11944518)
+                .setFooter({
+                    text: "Powered by StudentSuite",
+                    iconURL: "https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg"
+                })
+                .setThumbnail('https://i.imgur.com/FeekXot.png');
 
             await interaction.reply({ embeds: [embed], ephemeral: true });
 
@@ -32,11 +37,16 @@ module.exports = {
             });
 
             const nameEmbed = new EmbedBuilder()
-                .setTitle('Verification Step 1')
-                .setDescription(`<@${user.id}>, please provide your name.`)
-                .setColor('#0099ff');
+                .setDescription("# Verification Process\n### *Step 1:*\n\n*Please provide your name.*")
+                .setTimestamp(new Date('2024-11-28T16:00:00+00:00'))
+                .setColor(11944518)
+                .setFooter({
+                    text: "Powered by StudentSuite",
+                    iconURL: "https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg"
+                })
+                .setThumbnail('https://i.imgur.com/FeekXot.png');
 
-            await tempChannel.send({ embeds: [nameEmbed] });
+            await tempChannel.send({ content: `<@${user.id}>`, embeds: [nameEmbed] });
 
             const nameMessage = await tempChannel.awaitMessages({
                 filter: response => response.author.id === user.id,
@@ -76,9 +86,14 @@ module.exports = {
             rows.push(completeRow);
 
             const roleEmbed = new EmbedBuilder()
-                .setTitle('Verification Step 2')
-                .setDescription('Please choose your subject roles:')
-                .setColor('#0099ff');
+                .setDescription("# Verification Process\n### *Step 2:*\n\n*Please choose your subject roles from the options below by clicking the corresponding buttons:*")
+                .setTimestamp(new Date('2024-11-28T16:00:00+00:00'))
+                .setColor(11944518)
+                .setFooter({
+                    text: "Powered by StudentSuite",
+                    iconURL: "https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg"
+                })
+                .setThumbnail('https://i.imgur.com/FeekXot.png');
 
             await tempChannel.send({ embeds: [roleEmbed], components: rows });
 
@@ -96,7 +111,16 @@ module.exports = {
                 const role = guild.roles.cache.get(roleId);
                 if (!chosenRoles.has(roleId)) {
                     chosenRoles.add(roleId);
-                    await i.reply({ content: `You have chosen the role: ${role.name}`, ephemeral: true });
+                    const roleChosenEmbed = new EmbedBuilder()
+                        .setDescription(`# **You have chosen the role: ${role.name}**`)
+                        .setTimestamp(new Date('2024-11-28T16:00:00+00:00'))
+                        .setColor(5798747)
+                        .setFooter({
+                            text: "Powered by StudentSuite",
+                            iconURL: "https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg"
+                        });
+
+                    await i.reply({ embeds: [roleChosenEmbed], ephemeral: true });
                 }
             });
 
@@ -104,9 +128,15 @@ module.exports = {
                 const chosenRoleNames = Array.from(chosenRoles).map(roleId => guild.roles.cache.get(roleId).name).join(', ');
 
                 const confirmationEmbed = new EmbedBuilder()
-                    .setTitle('Confirmation')
-                    .setDescription(`Please confirm your details:\n**Name:** ${userName}\n**Subjects:** ${chosenRoleNames}`)
-                    .setColor('#0099ff');
+                    .setDescription(`# 📋 Subjects List Confirmation\n# *Please confirm your details before proceeding:*\n\n**Name:** ${userName}\n**Subjects:** ${chosenRoleNames}\n\n*If everything looks correct, click \`Confirm\` to proceed or \`Start Over\` to make changes.*`)
+                    .setTimestamp(new Date('2024-11-28T16:00:00+00:00'))
+                    .setColor(5798747)
+                    .setFooter({
+                        text: "Powered by StudentSuite",
+                        iconURL: "https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg"
+                    })
+                    .setImage('https://i.imgur.com/AZRevLY.png')
+                    .setThumbnail('https://i.imgur.com/FeekXot.png');
 
                 const confirmRow = new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
@@ -145,8 +175,18 @@ module.exports = {
                 });
 
                 confirmCollector.on('end', async () => {
+                    const timeoutEmbed = new EmbedBuilder()
+                        .setDescription("# ⏳ Process Timed Out")
+                        .setTimestamp(new Date('2024-11-28T16:00:00+00:00'))
+                        .setColor(11944518)
+                        .setFooter({
+                            text: "Powered by StudentSuite",
+                            iconURL: "https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg"
+                        })
+                        .setImage('https://i.imgur.com/rgnL7RO.png');
+
+                    await interaction.followUp({ embeds: [timeoutEmbed], ephemeral: true });
                     await tempChannel.delete();
-                    await interaction.followUp({ content: 'Verification process timed out. Please run the command again.', ephemeral: true });
                 });
             });
 

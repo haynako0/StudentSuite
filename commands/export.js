@@ -58,10 +58,10 @@ module.exports = {
                 }
 
                 let dateEmbed = new EmbedBuilder()
-                    .setColor('#0099ff')
-                    .setTitle(`Select a Date to Export Attendance for Role: ${role.name}`)
-                    .setDescription('Choose a date from the buttons below:')
-                    .setFooter({ text: 'You have 60 seconds to interact.' })
+                    .setColor(11944518)
+                    .setDescription(`# 📅 Select a Date to Export Attendance for Role:\n## Choose a date from the buttons below:`)
+                    .setThumbnail('https://i.imgur.com/FeekXot.png')
+                    .setFooter({ text: 'You have 60 seconds to interact.', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                     .setTimestamp();
 
                 await interaction.deferReply({ ephemeral: true });
@@ -73,7 +73,7 @@ module.exports = {
                 const interval = setInterval(() => {
                     const remainingTime = Math.ceil((60000 - (Date.now() - message.createdTimestamp)) / 1000);
                     if (remainingTime > 0) {
-                        dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.` });
+                        dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.`, iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' });
                         interaction.editReply({ embeds: [dateEmbed] });
                     }
                 }, 1000);
@@ -146,9 +146,10 @@ module.exports = {
                         pdfDoc.end();
 
                         const exportEmbed = new EmbedBuilder()
-                            .setColor('#0099ff')
-                            .setTitle(`Export Successful for Role: ${role.name}`)
-                            .setDescription(`Attendance records for ${role.name} on ${date} have been exported.`)
+                            .setColor(5798747)
+                            .setDescription(`# ✅ Export Successful for Role:\n# Attendance records for ${role.name} on ${date} have been exported.`)
+                            .setThumbnail('https://i.imgur.com/FeekXot.png')
+                            .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                             .setTimestamp();
 
                         i.followUp({ embeds: [exportEmbed], files: [{ attachment: pdfPath, name: path.basename(pdfPath) }] });

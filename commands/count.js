@@ -52,7 +52,14 @@ module.exports = {
             const dbPath = path.join(dbFolderPath, `${sanitizedRoleName}-${role.id}.db`);
 
             if (!fs.existsSync(dbPath)) {
-                await interaction.reply({ content: `No attendance records found for the subject: ${role.name}`, ephemeral: true });
+                const noRecordsEmbed = new EmbedBuilder()
+                    .setColor(11944518)
+                    .setDescription(`# No records were found for the subject: ${role.name}`)
+                    .setThumbnail('https://i.imgur.com/rgHfczw.png')
+                    .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
+                    .setTimestamp();
+
+                await interaction.reply({ embeds: [noRecordsEmbed], ephemeral: true });
                 return;
             }
 
@@ -81,13 +88,11 @@ module.exports = {
                     const absents = rows.filter(row => row.status === 'Absent').length;
 
                     const embed = new EmbedBuilder()
-                        .setColor('#0099ff')
+                        .setColor(11944518)
                         .setTitle(`Attendance Summary for ${student}`)
-                        .addFields(
-                            { name: 'Total Attendances', value: total.toString(), inline: true },
-                            { name: 'Presents', value: presents.toString(), inline: true },
-                            { name: 'Absents', value: absents.toString(), inline: true }
-                        )
+                        .setDescription(`# 📅 Attendance Summary for ${student}\n## Total Attendances: ${total} | Presents: ${presents} | Absents: ${absents}`)
+                        .setThumbnail('https://i.imgur.com/FeekXot.png')
+                        .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                         .setTimestamp();
 
                     await interaction.reply({ embeds: [embed], ephemeral: true });
@@ -101,7 +106,14 @@ module.exports = {
                     }
 
                     if (rows.length === 0) {
-                        await interaction.reply({ content: `No records found for the subject: ${role.name}`, ephemeral: true });
+                        const noRecordsEmbed = new EmbedBuilder()
+                            .setColor(11944518)
+                            .setDescription(`# No records were found for the subject: ${role.name}`)
+                            .setThumbnail('https://i.imgur.com/rgHfczw.png')
+                            .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
+                            .setTimestamp();
+
+                        await interaction.reply({ embeds: [noRecordsEmbed], ephemeral: true });
                         return;
                     }
 
@@ -118,10 +130,10 @@ module.exports = {
                     }
 
                     let dateEmbed = new EmbedBuilder()
-                        .setColor('#0099ff')
-                        .setTitle(`Select a Date to Count Attendance for Role: ${role.name}`)
-                        .setDescription('Choose a date from the buttons below:')
-                        .setFooter({ text: 'You have 60 seconds to interact.' })
+                        .setColor(11944518)
+                        .setDescription(`# 📅 Select a Date to Count Attendance for Role:\n### Choose a date from the buttons below.`)
+                        .setThumbnail('https://i.imgur.com/FeekXot.png')
+                        .setFooter({ text: 'You have 60 seconds to interact.', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                         .setTimestamp();
 
                     await interaction.deferReply({ ephemeral: true });
@@ -133,7 +145,7 @@ module.exports = {
                     const interval = setInterval(() => {
                         const remainingTime = Math.ceil((60000 - (Date.now() - message.createdTimestamp)) / 1000);
                         if (remainingTime > 0) {
-                            dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.` });
+                            dateEmbed.setFooter({ text: `You have ${remainingTime} seconds to interact.`, iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' });
                             interaction.editReply({ embeds: [dateEmbed] });
                         }
                     }, 1000);
@@ -162,13 +174,10 @@ module.exports = {
                             const absents = rows.filter(row => row.status === 'Absent').length;
 
                             const embed = new EmbedBuilder()
-                                .setColor('#0099ff')
-                                .setTitle(`Attendance Summary for ${selectedDate}`)
-                                .addFields(
-                                    { name: 'Total Attendances', value: total.toString(), inline: true },
-                                    { name: 'Presents', value: presents.toString(), inline: true },
-                                    { name: 'Absents', value: absents.toString(), inline: true }
-                                )
+                                .setColor(11944518)
+                                .setDescription(`# 📅 Attendance Summary for ${selectedDate}\n## Total Attendances: ${total} | Presents: ${presents} | Absents: ${absents}`)
+                                .setThumbnail('https://i.imgur.com/FeekXot.png')
+                                .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                                 .setTimestamp();
 
                             await i.followUp({ embeds: [embed], ephemeral: true });

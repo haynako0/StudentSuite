@@ -55,13 +55,14 @@ module.exports = {
                     return;
                 }
 
-                const studentList = rows.map(row => row.name).join('\n');
+                const studentList = rows.map((row, index) => `${index + 1}. ${row.name}`).join('\n');
 
                 if (type === 'records') {
                     const embed = new EmbedBuilder()
-                        .setColor('#0099ff')
-                        .setTitle(`Master List for Role: ${role.name}`)
-                        .setDescription(`Students with the role ${role.name}:\n${studentList}`)
+                        .setColor(5798747)
+                        .setDescription(`# 📋 Master List for Role:\n### Students with the role ${role.name}:\n${studentList}`)
+                        .setThumbnail('https://i.imgur.com/FeekXot.png')
+                        .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                         .setTimestamp();
 
                     await interaction.reply({ embeds: [embed] });
@@ -112,9 +113,10 @@ module.exports = {
 
                     writeStream.on('finish', async () => {
                         const exportEmbed = new EmbedBuilder()
-                            .setColor('#0099ff')
-                            .setTitle(`Master List Export Successful for Role: ${role.name}`)
-                            .setDescription(`The master list for the role ${role.name} has been exported.`)
+                            .setColor(5798747)
+                            .setDescription(`# ✅ Master List Export Successful for Role:\nThe master list for the role ${role.name} has been exported.`)
+                            .setThumbnail('https://i.imgur.com/FeekXot.png')
+                            .setFooter({ text: 'Powered by StudentSuite', iconURL: 'https://i.pinimg.com/736x/cb/b4/76/cbb47685095fec0e83f13906f64c1edb.jpg' })
                             .setTimestamp();
 
                         await interaction.reply({ embeds: [exportEmbed], files: [{ attachment: pdfPath, name: path.basename(pdfPath) }] });
